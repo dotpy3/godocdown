@@ -19,16 +19,6 @@ fmt.Println(doc)
 
 ## Templating
 
-In addition to Markdown rendering, godocdown provides templating via text/template (http://golang.org/pkg/text/template/) for further customization. By putting a file named ".godocdown.template" (or one from the list below) in the same directory as your package/command, godocdown will know to use the file as a template.
-
-```
-# text/template
-.godocdown.markdown
-.godocdown.md
-.godocdown.template
-.godocdown.tmpl
-```
-
 A template file can also be specified with the `templatePath` parameter of `GenerateDocumentation()`.
 
 Along with the standard template functionality, the starting data argument has the following interface:
