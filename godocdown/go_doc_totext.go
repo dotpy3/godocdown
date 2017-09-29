@@ -1,4 +1,4 @@
-package main
+package godocdown
 
 // Our own, slightly different version of ToText.
 

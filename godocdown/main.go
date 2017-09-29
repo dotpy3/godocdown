@@ -95,7 +95,7 @@ Along with the standard template functionality, the starting data argument has t
     // The import path for the package (string)                                                       
     // (This field will be the empty string if godocdown is unable to guess it)                       
 */
-package main
+package godocdown
 
 import (
 	"bytes"
@@ -112,7 +112,6 @@ import (
 	"regexp"
 	"strings"
 	Template "text/template"
-	Time "time"
 )
 
 const (
@@ -166,18 +165,6 @@ var DefaultStyle = Style{
 	IncludeSignature: false,
 }
 var RenderStyle = DefaultStyle
-
-func usage() {
-	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
-	kilt.PrintDefaults(flag)
-	executable, err := os.Stat(os.Args[0])
-	if err != nil {
-		return
-	}
-	time := executable.ModTime()
-	since := Time.Since(time)
-	fmt.Fprintf(os.Stderr, "---\n%s (%.2f)\n", time.Format("2006-01-02 15:04 MST"), since.Minutes())
-}
 
 func init() {
 	flag.Usage = usage
@@ -524,16 +511,7 @@ func findTemplate(path string) string {
 	return "" // Nothing found
 }
 
-func loadTemplate(document *_document) *Template.Template {
-	if *flag_noTemplate {
-		return nil
-	}
-
-	templatePath := *flag_template
-	if templatePath == "" {
-		templatePath = findTemplate(document.buildPkg.Dir)
-	}
-
+func loadTemplate(templatePath string) *Template.Template {
 	if templatePath == "" {
 		return nil
 	}
@@ -547,43 +525,18 @@ func loadTemplate(document *_document) *Template.Template {
 	return template
 }
 
-func main() {
-	flag.Parse(os.Args[1:])
-	target := flag.Arg(0)
-	fallbackUsage := false
-	if target == "" {
-		fallbackUsage = true
-		target = "."
-	}
+var ErrNoDocumentFound errors.New("No document found")
 
+func GenerateDocumentation(target, templatePath string) (string, error) {
 	RenderStyle.IncludeSignature = *flag_signature
-
-	switch *flag_heading {
-	case "1Word":
-		RenderStyle.SynopsisHeading = synopsisHeading1Word_Regexp
-	case "TitleCase":
-		RenderStyle.SynopsisHeading = synopsisHeadingTitleCase_Regexp
-	case "Title":
-		RenderStyle.SynopsisHeading = synopsisHeadingTitle_Regexp
-	case "TitleCase1Word":
-		RenderStyle.SynopsisHeading = synopsisHeadingTitleCase1Word_Regexp
-	case "", "-":
-		RenderStyle.SynopsisHeading = nil
-	}
 
 	document, err := loadDocument(target)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+		return errors.Wrap(err, "Could not load document")
 	}
 	if document == nil {
 		// Nothing found.
-		if fallbackUsage {
-			usage()
-			os.Exit(2)
-		} else {
-			fmt.Fprintf(os.Stderr, "Could not find package: %s\n", target)
-			os.Exit(1)
-		}
+		return "". ErrNoDocumentFound
 	}
 
 	template := loadTemplate(document)
@@ -601,20 +554,7 @@ func main() {
 		document.EmitSignatureTo(&buffer)
 	}
 
-	if debug {
-		// Skip printing if we're debugging
-		return
-	}
-
 	documentation := buffer.String()
 	documentation = strings.TrimSpace(documentation)
-	if flag_output == "" || flag_output == "-" {
-		fmt.Println(documentation)
-	} else {
-		file, err := os.Create(flag_output)
-		if err != nil {
-		}
-		defer file.Close()
-		_, err = fmt.Fprintln(file, documentation)
-	}
+	return documentation, nil
 }
