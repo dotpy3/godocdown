@@ -1,9 +1,18 @@
-.PHONY: build test install release
+.PHONY: build test test-example install release
 
-build test install:
-	$(MAKE) -C godocdown $@
+build: test
+	go build
 
-release: build
-	godocdown/godocdown -template example.template $(HOME)/go/src/pkg/strings > example.markdown
-	(cd godocdown && ./godocdown -signature > README.markdown) || false
-	cp godocdown/README.markdown .
+test:
+	go test -i
+	go test
+
+test-example: build
+	./godocdown -signature example > test/README.markdown
+	#cd test && git commit -m 'WIP' * && git push
+
+install:
+	go install
+
+release:
+	$(MAKE) -C .. $@
