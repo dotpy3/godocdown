@@ -112,6 +112,8 @@ import (
 	"regexp"
 	"strings"
 	Template "text/template"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -165,10 +167,6 @@ var DefaultStyle = Style{
 	IncludeSignature: false,
 }
 var RenderStyle = DefaultStyle
-
-func init() {
-	flag.Usage = usage
-}
 
 type Style struct {
 	IncludeImport bool
@@ -525,21 +523,21 @@ func loadTemplate(templatePath string) *Template.Template {
 	return template
 }
 
-var ErrNoDocumentFound errors.New("No document found")
+var ErrNoDocumentFound = errors.New("No document found")
 
 func GenerateDocumentation(target, templatePath string) (string, error) {
 	RenderStyle.IncludeSignature = *flag_signature
 
 	document, err := loadDocument(target)
 	if err != nil {
-		return errors.Wrap(err, "Could not load document")
+		return "", errors.Wrap(err, "Could not load document")
 	}
 	if document == nil {
 		// Nothing found.
-		return "". ErrNoDocumentFound
+		return "", ErrNoDocumentFound
 	}
 
-	template := loadTemplate(document)
+	template := loadTemplate(templatePath)
 
 	var buffer bytes.Buffer
 	if template == nil {
